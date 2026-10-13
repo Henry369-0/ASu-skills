@@ -107,9 +107,12 @@ $offer 把这些招聘邮件整理成秋招投递进度表。
 - 18 个中文 HTML 模板；
 - A4 单页或双页排版；
 - 浏览器内编辑文字、照片、字体、颜色和加粗；
+- 通用单页和双页模板可用“保存 HTML”下载编辑稿，重新打开后继续修改；
 - 打印导出 PDF；
 - 根据截图分析栏位、间距、字号、颜色和分页结构；
 - 使用虚构示例照片作为占位，生成真实简历时由用户主动替换。
+
+手动修改后先点“保存 HTML”保留源稿，再按需要打印 PDF。保存时会尝试把照片放入编辑稿；如果页面提示照片无法保存，先通过“替换照片”重新选择图片。浏览器回归步骤见 [tests/README.md](tests/README.md)。
 
 典型用法：
 
@@ -253,9 +256,9 @@ asu-skills/
 
 <a href="https://www.star-history.com/?repos=Hisn00w%2FASu-skills&type=timeline&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Hisn00w/ASu-skills&type=timeline&theme=dark&legend=top-left&sealed_token=bjbMfvRN5HhBif26VkNL7fMNZhYEU6NOxOMDWOzZvQnyJjYS5cPBNShexQ_xybTo30fuVzzhrKWq4x4IZAHEFrDesIwfK5iGJONtmrR_3Hhz3B2UFaKxs2iptYBKSxN0TbubpjnmkGaFme25ufww7AXpqptuXSHNK9KAWAP45t26kEa8NXXbLPxqH-5w" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Hisn00w/ASu-skills&type=timeline&legend=top-left&sealed_token=bjbMfvRN5HhBif26VkNL7fMNZhYEU6NOxOMDWOzZvQnyJjYS5cPBNShexQ_xybTo30fuVzzhrKWq4x4IZAHEFrDesIwfK5iGJONtmrR_3Hhz3B2UFaKxs2iptYBKSxN0TbubpjnmkGaFme25ufww7AXpqptuXSHNK9KAWAP45t26kEa8NXXbLPxqH-5w" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Hisn00w/ASu-skills&type=timeline&legend=top-left&sealed_token=bjbMfvRN5HhBif26VkNL7fMNZhYEU6NOxOMDWOzZvQnyJjYS5cPBNShexQ_xybTo30fuVzzhrKWq4x4IZAHEFrDesIwfK5iGJONtmrR_3Hhz3B2UFaKxs2iptYBKSxN0TbubpjnmkGaFme25ufww7AXpqptuXSHNK9KAWAP45t26kEa8NXXbLPxqH-5w" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=Hisn00w%2FASu-skills&type=timeline&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=Hisn00w%2FASu-skills&type=timeline&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=Hisn00w%2FASu-skills&type=timeline&legend=top-left" />
  </picture>
 </a>
 

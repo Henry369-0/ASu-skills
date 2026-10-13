@@ -225,6 +225,30 @@
       function makeId() {
         return window.crypto?.randomUUID ? window.crypto.randomUUID() : `record-${Date.now()}-${Math.random().toString(16).slice(2)}`;
       }
+      function validateImportedRecords(value) {
+        if (!Array.isArray(value)) throw new Error('备份内容必须是记录数组');
+        const ids = new Set();
+        return value.map((item, index) => {
+          const fail = (field) => { throw new Error(`第 ${index + 1} 条记录的${field}无效`); };
+          if (!item || typeof item !== 'object' || Array.isArray(item)) fail('格式');
+          if (typeof item.id !== 'string' || !item.id.trim()) fail('标识');
+          const id = item.id.trim();
+          if (ids.has(id)) throw new Error(`第 ${index + 1} 条记录的标识重复`);
+          ids.add(id);
+          if (typeof item.company !== 'string' || !item.company.trim()) fail('公司');
+          if (typeof item.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(item.date)) fail('日期');
+          const date = new Date(`${item.date}T00:00:00Z`);
+          if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== item.date) fail('日期');
+          if (!statuses.includes(item.status)) fail('进度');
+          const fields = {};
+          for (const [key, label] of [['time', '时间'], ['position', '岗位'], ['next', '下一步'], ['note', '备注']]) {
+            if (item[key] !== undefined && typeof item[key] !== 'string') fail(label);
+            fields[key] = item[key] || '';
+          }
+          if (fields.time && !/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(fields.time)) fail('时间');
+          return { ...item, id, company: item.company.trim(), ...fields };
+        });
+      }
       function loadRecords() {
         try {
           const saved = localStorage.getItem(STORAGE_KEY);
@@ -273,7 +297,7 @@
           <td><span class="status status-${escapeHtml(item.status)}">${escapeHtml(item.status)}</span></td>
           <td>${escapeHtml(item.next || '-')}</td>
           <td class="note">${escapeHtml(item.note || '-')}</td>
-          <td><div class="row-actions"><button class="icon-button" data-edit="${item.id}" type="button">编辑</button><button class="icon-button delete" data-delete="${item.id}" type="button">删除</button></div></td>
+          <td><div class="row-actions"><button class="icon-button" data-edit="${escapeHtml(item.id)}" type="button">编辑</button><button class="icon-button delete" data-delete="${escapeHtml(item.id)}" type="button">删除</button></div></td>
         </tr>`).join('');
         emptyState.style.display = visible.length ? 'none' : 'block';
         $('#resultHint').textContent = `显示 ${visible.length} 条`;
@@ -317,10 +341,12 @@
         reader.onload = () => {
           try {
             const value = JSON.parse(reader.result);
-            if (!Array.isArray(value)) throw new Error('格式错误');
-            records = value.filter((item) => item && item.company).map((item) => ({ id: item.id || makeId(), date: item.date || today(), time: String(item.time || ''), company: String(item.company), position: String(item.position || ''), status: statuses.includes(item.status) ? item.status : '已投递', next: String(item.next || ''), note: String(item.note || '') }));
-            persist(); render(); alert(`已导入 ${records.length} 条记录。`);
-          } catch { alert('导入失败：请选择本页面导出的 JSON 备份文件。'); }
+            const imported = validateImportedRecords(value);
+            if (records.length && !confirm(`将用备份中的 ${imported.length} 条记录替换当前 ${records.length} 条记录。请先确认已备份当前记录，是否继续？`)) return;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
+            records = imported;
+            render(); alert(`已导入 ${records.length} 条记录。`);
+          } catch (error) { alert(`导入失败，已有记录未改动：${error.message || '请选择本页面导出的 JSON 备份文件。'}`); }
         };
         reader.readAsText(file, 'utf-8');
       }
