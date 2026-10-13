@@ -16,7 +16,8 @@
     .toolbar-control select { border:1px solid #cbd4df; border-radius:5px; padding:6px 7px; color:var(--accent); background:#fff; font:inherit; }
     .toolbar-control input[type=color] { width:32px; height:29px; padding:2px; border:1px solid #cbd4df; border-radius:5px; background:#fff; cursor:pointer; }
     .toolbar button[data-action=bold] { min-width:64px; }
-    .toolbar-status { color: #596273; font-size: 12px; }
+    .toolbar { flex-wrap: wrap; align-items: center; }
+    .toolbar-status { flex-basis: 100%; color: #596273; font-size: 12px; text-align: right; }
     .resume-page { width: var(--page-width); min-height: var(--page-height); margin: 0 auto; padding: 8mm 12mm 10mm; background: #fff; break-after: page; page-break-after: always; overflow: hidden; }
     .resume-page:last-child { break-after: auto; page-break-after: auto; }
     .profile-header { display: grid; grid-template-columns: 24mm 1fr 1.45fr; gap: 6mm; align-items: start; min-height: 34mm; padding-bottom: 4mm; border-bottom: .55mm solid var(--accent); }
@@ -50,9 +51,10 @@
     <label class="toolbar-control">文字颜色<input id="colorInput" type="color" value="#111111" aria-label="文字颜色"></label>
     <button id="boldButton" data-action="bold" type="button" title="对选中文字加粗或取消加粗"><strong>B</strong> 加粗</button>
     <button id="photoButton" class="secondary" type="button">替换照片</button>
+    <button id="saveHtmlButton" type="button">保存 HTML</button>
     <button id="exportButton" type="button">导出PDF</button>
     <input id="photoInput" type="file" accept="image/*" hidden>
-    <span id="toolbarStatus" class="toolbar-status" aria-live="polite"></span>
+    <span id="toolbarStatus" class="toolbar-status" aria-live="polite">修改后请保存 HTML，重新打开可继续编辑。</span>
   </div>
   <main id="resumeDocument">
     <article class="resume-page">
@@ -87,12 +89,53 @@
       document.addEventListener('selectionchange', () => { const selection = window.getSelection(); if (selection && selection.rangeCount && documentRoot.contains(selection.anchorNode)) savedRange = selection.getRangeAt(0).cloneRange(); });
       const restoreSelection = () => { if (!savedRange) return; const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(savedRange); };
       const applyFormat = (command, value = null) => { if (!documentRoot.isContentEditable) edit.click(); documentRoot.focus(); restoreSelection(); document.execCommand(command, false, value); };
-      edit.onclick = () => { const on = !documentRoot.isContentEditable; documentRoot.contentEditable = String(on); documentRoot.spellcheck = false; edit.textContent = on ? '完成编辑' : '编辑'; edit.classList.toggle('secondary', on); status.textContent = on ? '可直接点击文字修改' : ''; if (on) documentRoot.focus(); };
+      edit.onclick = () => { const on = !documentRoot.isContentEditable; documentRoot.contentEditable = String(on); documentRoot.spellcheck = false; edit.textContent = on ? '完成编辑' : '编辑'; edit.classList.toggle('secondary', on); status.textContent = on ? '可直接点击文字修改，修改后请保存 HTML' : '修改后请保存 HTML，重新打开可继续编辑。'; if (on) documentRoot.focus(); };
       fontSelect.onchange = () => applyFormat('fontName', fontSelect.value);
       colorInput.oninput = () => applyFormat('foreColor', colorInput.value);
       boldButton.onclick = () => applyFormat('bold');
       document.getElementById('photoButton').onclick = () => input.click();
       input.onchange = () => { const file = input.files && input.files[0]; if (!file || !file.type.startsWith('image/')) return; const reader = new FileReader(); reader.onload = () => { photoBox.innerHTML = `<img src="${reader.result}" alt="照片">`; status.textContent = '照片已替换'; }; reader.readAsDataURL(file); };
+      document.getElementById('saveHtmlButton').onclick = async () => {
+        const button = document.getElementById('saveHtmlButton');
+        button.disabled = true;
+        try {
+          const copy = document.documentElement.cloneNode(true);
+          const images = Array.from(document.images);
+          const copiedImages = copy.querySelectorAll('img');
+          for (let i = 0; i < images.length; i++) {
+            if (images[i].getAttribute('src')?.startsWith('data:')) continue;
+            await images[i].decode();
+            const canvas = document.createElement('canvas');
+            canvas.width = images[i].naturalWidth;
+            canvas.height = images[i].naturalHeight;
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error('无法保存照片');
+            context.drawImage(images[i], 0, 0);
+            copiedImages[i].src = canvas.toDataURL('image/png');
+          }
+          copy.querySelectorAll('[contenteditable]').forEach(node => node.setAttribute('contenteditable', 'false'));
+          copy.querySelector('#editButton').textContent = '编辑';
+          copy.querySelector('#editButton').classList.remove('secondary');
+          copy.querySelector('#saveHtmlButton').disabled = false;
+          copy.querySelector('#toolbarStatus').textContent = '修改后请保存 HTML，重新打开可继续编辑。';
+          const name = (document.querySelector('.name').textContent.trim() || '简历').replace(/[\\/:*?"<>|]/g, '-').slice(0, 60);
+          copy.querySelector('title').textContent = `${name} - 简历编辑稿`;
+          const blob = new Blob(['<!doctype html>\n' + copy.outerHTML], { type: 'text/html;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${name}-简历编辑稿.html`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          status.textContent = 'HTML 已下载，重新打开该文件可继续编辑。';
+        } catch {
+          status.textContent = '保存失败：请点击“替换照片”重新选择图片后再保存 HTML。文字修改仍在当前页面。';
+        } finally {
+          button.disabled = false;
+        }
+      };
       document.getElementById('exportButton').onclick = () => { status.textContent = '请在打印窗口选择“另存为 PDF”'; window.print(); };
     })();
   </script>
